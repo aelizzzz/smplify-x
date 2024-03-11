@@ -80,6 +80,7 @@ def fit_single_frame_bmi(img,
                      height,
                      weight,
                      gender,
+                     joints_path,
                      body_model,
                      camera,
                      joint_weights,
@@ -123,6 +124,7 @@ def fit_single_frame_bmi(img,
                      interactive=True,
                      visualize=False,
                      save_meshes=True,
+                     save_joints=True,
                      degrees=None,
                      batch_size=1,
                      dtype=torch.float32,
@@ -420,7 +422,7 @@ def fit_single_frame_bmi(img,
 
         # Step 2: Optimize the full model
         final_loss_val = 0
-        for or_idx, orient in enumerate(tqdm(orientations, desc='Orientation')):
+        for or_idx, orient in enumerate(tqdm(orientations, desc='Orientbody_modelation')):
             opt_start = time.time()
 
             betas_bmi = torch.tensor(measurements_to_betas(height, weight, gender), dtype=torch.float32)
@@ -532,28 +534,10 @@ def fit_single_frame_bmi(img,
                                          device=body_pose.device)
                 body_pose = torch.cat([body_pose, wrist_pose], dim=1)
 
-        #Define global orientation
-        global_orient=torch.zeros(1,3, device='cuda:0', requires_grad=True)
-        body_model.reset_params(global_orient=global_orient)
         model_output = body_model(return_verts=True, body_pose=body_pose)
-        # Joints coordinates
-        joints = model_output.joints.detach().cpu().numpy().squeeze()
-        joints *= 1000 # convert to mm
-        # Rotate joints around x-axis +90 degrees
-        import trimesh
-        rot = trimesh.transformations.rotation_matrix(
-            np.radians(90), [1, 0, 0])
-        joints = trimesh.transform_points(joints, rot)
-        # check if global_orientation is reset
-        #print("body model's orientation: ", body_model.global_orient)
-        # Save joint positions
-        import json
-        with open("joints.json", "w") as f:
-            json.dump(joints.tolist(), f)
-        
         vertices = model_output.vertices.detach().cpu().numpy().squeeze()
 
-        #import trimesh
+        import trimesh
 
         out_mesh = trimesh.Trimesh(vertices, body_model.faces, process=False)
         rot = trimesh.transformations.rotation_matrix(
@@ -608,3 +592,23 @@ def fit_single_frame_bmi(img,
 
         img = pil_img.fromarray((output_img * 255).astype(np.uint8))
         img.save(out_img_fn)
+    
+    if save_joints:
+        #Define global orientation
+        global_orient=torch.zeros(1,3, device='cuda:0', requires_grad=True)
+        body_model.reset_params(global_orient=global_orient)
+        model_output = body_model(return_verts=True, body_pose=body_pose)
+        # Joints coordinates
+        joints = model_output.joints.detach().cpu().numpy().squeeze()
+        joints *= 1000 # convert to mm
+        # Rotate joints around x-axis +90 degrees
+        import trimesh
+        rot = trimesh.transformations.rotation_matrix(
+            np.radians(90), [1, 0, 0])
+        joints = trimesh.transform_points(joints, rot)
+        # check if global_orientation is reset
+        #print("body model's orientation: ", body_model.global_orient)
+        # Save joint positions
+        import json
+        with open(joints_path, "w") as f:
+            json.dump(joints.tolist(), f)

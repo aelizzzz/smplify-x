@@ -282,7 +282,10 @@ def parse_config(argv=None):
                         help='The maximum iterations for the optimization')
     parser.add_argument('--bmi_folder', default=os.getcwd(),
                         help='folder with json files containing player height and weight')
-
+    parser.add_argument('--save_joints',
+                        type=lambda arg: arg.lower() == 'true',
+                        default=True,
+                        help='Save regressed 3D joints')
     args = parser.parse_args(argv)
 
     args_dict = vars(args)

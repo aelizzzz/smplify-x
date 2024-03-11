@@ -20,7 +20,10 @@ python smplifyx/main_bmi_from_folder.py --config cfg_files/fit_smplx.yaml
     --bmi_folder BMI_FOLDER
 ```
 with `BMI_FOLDER` the folder with json files containing the height (cm) and weight (kg) of the people of interest (format {"height": 180.0, "weight": 97.0}). Each image must correspond to a keypoint file with only one person, and to one json file with their height and weight.
-- Saves the 3D regressed position of the joints (in the bmi version)
+- Saves the 3D regressed position of the joints (in the bmi version) (default value if not an argument: True)
+```Shell 
+    --save_joints True/False
+```
 
 ## Table of Contents
   * [License](#license)

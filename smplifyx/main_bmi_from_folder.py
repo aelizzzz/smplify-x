@@ -75,6 +75,12 @@ def main(**args):
     out_img_folder = osp.join(output_folder, 'images')
     if not osp.exists(out_img_folder):
         os.makedirs(out_img_folder)
+    
+    save_joints = args.pop('save_joints', True)
+    if save_joints:
+        out_joints_folder = osp.join(output_folder, 'joints')
+        if not osp.exists(out_joints_folder):
+            os.makedirs(out_joints_folder)
 
     float_dtype = args['float_dtype']
     if float_dtype == 'float64':
@@ -226,6 +232,9 @@ def main(**args):
         input_height = data["height"]
         input_weight = data["weight"]
         print('Height: {}, weight: {}'.format(input_height, input_weight))
+        
+        # Define path to save joints json file
+        joints_path = osp.join(out_joints_folder, fn+"_joints.json")
 
         curr_result_folder = osp.join(result_folder, fn)
         if not osp.exists(curr_result_folder):
@@ -268,6 +277,7 @@ def main(**args):
                              height = input_height,
                              weight = input_weight,
                              gender = input_gender,
+                             joints_path = joints_path,
                              body_model=body_model,
                              camera=camera,
                              joint_weights=joint_weights,
