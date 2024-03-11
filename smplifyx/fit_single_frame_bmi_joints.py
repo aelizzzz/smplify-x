@@ -424,12 +424,12 @@ def fit_single_frame_bmi(img,
             opt_start = time.time()
 
             betas_bmi = torch.tensor(measurements_to_betas(height, weight, gender), dtype=torch.float32)
-            print(betas_bmi)
+            #print(betas_bmi)
             new_params = defaultdict(global_orient=orient,
                                      body_pose=body_mean_pose,
                                      betas = betas_bmi)
             body_model.reset_params(**new_params)
-            print('body_model: ', body_model)
+            #print('body_model: ', body_model)
             if use_vposer:
                 with torch.no_grad():
                     pose_embedding.fill_(0)
@@ -545,7 +545,7 @@ def fit_single_frame_bmi(img,
             np.radians(90), [1, 0, 0])
         joints = trimesh.transform_points(joints, rot)
         # check if global_orientation is reset
-        print("body model's orientation: ", body_model.global_orient)
+        #print("body model's orientation: ", body_model.global_orient)
         # Save joint positions
         import json
         with open("joints.json", "w") as f:
