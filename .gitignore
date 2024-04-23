@@ -107,3 +107,9 @@ venv.bak/
 # mypy
 .mypy_cache/
 
+output/*
+models/*
+data/*
+vposer_v1_0/*
+data.zip
+vposer_V1_0.zip
