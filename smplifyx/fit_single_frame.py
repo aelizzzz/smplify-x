@@ -58,6 +58,7 @@ def fit_single_frame(img,
                      shape_prior,
                      expr_prior,
                      angle_prior,
+                     joints_path,
                      result_fn='out.pkl',
                      mesh_fn='out.obj',
                      out_img_fn='overlay.png',
@@ -531,7 +532,7 @@ def fit_single_frame(img,
         print("body_model's orient: ", body_model.global_orient)
         #save joints as json
         import json
-        with open('joints.json', 'w') as f:
+        with open(joints_path, 'w') as f:
             json.dump(joints.tolist(), f)
 
         vertices = model_output.vertices.detach().cpu().numpy().squeeze()

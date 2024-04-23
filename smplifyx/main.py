@@ -82,6 +82,10 @@ def main(**args):
 
     img_folder = args.pop('img_folder', 'images')
     dataset_obj = create_dataset(img_folder=img_folder, **args)
+    
+    out_joints_folder = osp.join(output_folder, 'joints')
+    if not osp.exists(out_joints_folder):
+        os.makedirs(out_joints_folder)
 
     start = time.time()
 
@@ -211,6 +215,10 @@ def main(**args):
         curr_mesh_folder = osp.join(mesh_folder, fn)
         if not osp.exists(curr_mesh_folder):
             os.makedirs(curr_mesh_folder)
+
+        # Define path to save joints json file
+        joints_path = osp.join(out_joints_folder, fn+"_joints.json")
+        
         for person_id in range(keypoints.shape[0]):
             if person_id >= max_persons and max_persons > 0:
                 continue
