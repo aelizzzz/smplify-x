@@ -218,7 +218,7 @@ def main(**args):
 
         # Define path to save joints json file
         joints_path = osp.join(out_joints_folder, fn+"_joints.json")
-        
+
         for person_id in range(keypoints.shape[0]):
             if person_id >= max_persons and max_persons > 0:
                 continue
@@ -257,6 +257,7 @@ def main(**args):
                              dtype=dtype,
                              output_folder=output_folder,
                              result_folder=curr_result_folder,
+                             joints_path=joints_path,
                              out_img_fn=out_img_fn,
                              result_fn=curr_result_fn,
                              mesh_fn=curr_mesh_fn,
