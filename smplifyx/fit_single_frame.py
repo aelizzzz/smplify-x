@@ -393,16 +393,18 @@ def fit_single_frame(img,
             opt_start = time.time()
 
              # Damar betas
+            '''
             new_params = defaultdict(global_orient=orient,
                                      body_pose=body_mean_pose,
                                      betas = torch.tensor([[-0.5428955554962158, 0.10958688706159592, 0.18718387186527252, -0.16433975100517273, -0.01722436398267746, 0.039273880422115326, -0.10529498010873795, 0.024629995226860046, 0.165267676115036, 0.11545940488576889]], dtype=torch.float32))
 
             body_model.reset_params(**new_params)
+            '''
             if use_vposer:
                 with torch.no_grad():
                     pose_embedding.fill_(0)
 
-            body_model.betas.requires_grad = False
+            #body_model.betas.requires_grad = False
             for opt_idx, curr_weights in enumerate(tqdm(opt_weights, desc='Stage')):
 
                 body_params = list(body_model.parameters())
