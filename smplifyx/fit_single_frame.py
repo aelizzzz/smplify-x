@@ -395,7 +395,7 @@ def fit_single_frame(img,
              # Damar betas
             new_params = defaultdict(global_orient=orient,
                                      body_pose=body_mean_pose,
-                                     betas = torch.tensor([[-0.5428955554962158, 0.10958688706159592, 0.18718387186527252, -0.16433975100517273, -0.01722436398267746, 0.039273880422115326, -0.10529498010873795, 0.024629995226860046, 0.165267676115036, 0.11545940488576889]], dtype=torch.float32))
+                                     betas = torch.tensor([[-0.62313456, -0.23767281, -0.00250375, -0.13060007,  0.02152915,  0.06315096, -0.02189279,  0.00386397,  0.11787845,  0.08951365]], dtype=torch.float32))
 
             body_model.reset_params(**new_params)
             if use_vposer:
