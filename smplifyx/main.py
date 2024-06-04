@@ -30,10 +30,13 @@ import torch
 
 import smplx
 
+import json
+
 from utils import JointMapper
 from cmd_parser import parse_config
 from data_parser import create_dataset
 from fit_single_frame import fit_single_frame
+from fit_single_frame_bmi import fit_single_frame_bmi
 
 from camera import create_camera
 from prior import create_prior
@@ -65,6 +68,14 @@ def main(**args):
     out_img_folder = osp.join(output_folder, 'images')
     if not osp.exists(out_img_folder):
         os.makedirs(out_img_folder)
+
+    # Check if betas are free to be fitted, fixed for all cases, or personalized
+    bmi = args.pop('bmi', 'free')
+    if bmi == 'personalized':
+        bmi_folder = args.pop('bmi_folder')
+    elif bmi == "fixed":
+        input_height = args.pop('height', 170.0)
+        input_weight = args.pop('weight', 60.0)
 
     float_dtype = args['float_dtype']
     if float_dtype == 'float64':
@@ -209,6 +220,16 @@ def main(**args):
         keypoints = data['keypoints']
         print('Processing: {}'.format(data['img_path']))
 
+        # Get BMI info if BMI personalized
+        if bmi == "personalized":
+            bmi_path = osp.join(bmi_folder, fn+"_bmi.json")
+            with open(bmi_path) as f:
+                data = json.load(f)
+                f.close()
+            input_height = data["height"]
+            input_weight = data["weight"]
+            print('Height: {}, weight: {}'.format(input_height, input_weight))
+
         curr_result_folder = osp.join(result_folder, fn)
         if not osp.exists(curr_result_folder):
             os.makedirs(curr_result_folder)
@@ -250,25 +271,50 @@ def main(**args):
 
             out_img_fn = osp.join(curr_img_folder, 'output.png')
 
-            fit_single_frame(img, keypoints[[person_id]],
-                             body_model=body_model,
-                             camera=camera,
-                             joint_weights=joint_weights,
-                             dtype=dtype,
-                             output_folder=output_folder,
-                             result_folder=curr_result_folder,
-                             joints_path=joints_path,
-                             out_img_fn=out_img_fn,
-                             result_fn=curr_result_fn,
-                             mesh_fn=curr_mesh_fn,
-                             shape_prior=shape_prior,
-                             expr_prior=expr_prior,
-                             body_pose_prior=body_pose_prior,
-                             left_hand_prior=left_hand_prior,
-                             right_hand_prior=right_hand_prior,
-                             jaw_prior=jaw_prior,
-                             angle_prior=angle_prior,
-                             **args)
+            if bmi == "free":
+                fit_single_frame(img, keypoints[[person_id]],
+                                body_model=body_model,
+                                camera=camera,
+                                joint_weights=joint_weights,
+                                dtype=dtype,
+                                output_folder=output_folder,
+                                result_folder=curr_result_folder,
+                                joints_path=joints_path,
+                                out_img_fn=out_img_fn,
+                                result_fn=curr_result_fn,
+                                mesh_fn=curr_mesh_fn,
+                                shape_prior=shape_prior,
+                                expr_prior=expr_prior,
+                                body_pose_prior=body_pose_prior,
+                                left_hand_prior=left_hand_prior,
+                                right_hand_prior=right_hand_prior,
+                                jaw_prior=jaw_prior,
+                                angle_prior=angle_prior,
+                                **args)
+
+            elif bmi == "personalized" or bmi == "fixed":    
+                fit_single_frame_bmi(img, keypoints[[person_id]],
+                                height = input_height,
+                                weight = input_weight,
+                                gender = input_gender,
+                                joints_path = joints_path,
+                                body_model=body_model,
+                                camera=camera,
+                                joint_weights=joint_weights,
+                                dtype=dtype,
+                                output_folder=output_folder,
+                                result_folder=curr_result_folder,
+                                out_img_fn=out_img_fn,
+                                result_fn=curr_result_fn,
+                                mesh_fn=curr_mesh_fn,
+                                shape_prior=shape_prior,
+                                expr_prior=expr_prior,
+                                body_pose_prior=body_pose_prior,
+                                left_hand_prior=left_hand_prior,
+                                right_hand_prior=right_hand_prior,
+                                jaw_prior=jaw_prior,
+                                angle_prior=angle_prior,
+                                **args)
 
     elapsed = time.time() - start
     time_msg = time.strftime('%H hours, %M minutes, %S seconds',

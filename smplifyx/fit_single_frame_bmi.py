@@ -15,6 +15,10 @@
 #
 # Contact: ps-license@tuebingen.mpg.de
 
+# Modified to take into account fixed height and weight information before 
+# optimisation of the model
+# Modified to return the 3D position of the regressed joints after fitting
+
 from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import division
@@ -45,9 +49,38 @@ from optimizers import optim_factory
 import fitting
 from human_body_prior.tools.model_loader import load_vposer
 
+import json
+
+
+def measurements_to_betas(height, weight, gender):
+    # code from Blender Add-On https://gitlab.tuebingen.mpg.de/jtesch/smplx_blender_addon/
+    # Measurements to Betas regressor by Lea Müller and Vassilis Choutas
+    
+    if gender == "female":
+        regressor_path = "measurements_to_betas/smplx_measurements_to_betas_female.json"
+    elif gender == "male":
+        regressor_path = "measurements_to_betas/smplx_measurements_to_betas_male.json"
+    elif gender == "neutral":
+        regressor_path = "measurements_to_betas/smplx_measurements_to_betas_neutral.json"
+    
+    with open(regressor_path) as f:
+        data = json.load(f)
+        betas_regressor = (np.asarray(data["A"]).reshape(-1, 2), np.asarray(data["B"]).reshape(-1, 1))
+    (A, B) = betas_regressor
+    
+    # Calculate beta values from measurements
+    v_root = pow(weight, 1.0/3.0)
+    measurements = np.asarray([[height], [v_root]])
+    betas = A @ measurements + B
+    return np.transpose(betas)
+
 
 def fit_single_frame(img,
                      keypoints,
+                     height,
+                     weight,
+                     gender,
+                     joints_path,
                      body_model,
                      camera,
                      joint_weights,
@@ -58,7 +91,6 @@ def fit_single_frame(img,
                      shape_prior,
                      expr_prior,
                      angle_prior,
-                     joints_path,
                      result_fn='out.pkl',
                      mesh_fn='out.obj',
                      out_img_fn='overlay.png',
@@ -92,6 +124,7 @@ def fit_single_frame(img,
                      interactive=True,
                      visualize=False,
                      save_meshes=True,
+                     save_joints=True,
                      degrees=None,
                      batch_size=1,
                      dtype=torch.float32,
@@ -389,19 +422,20 @@ def fit_single_frame(img,
 
         # Step 2: Optimize the full model
         final_loss_val = 0
-        for or_idx, orient in enumerate(tqdm(orientations, desc='Orientation')):
+        for or_idx, orient in enumerate(tqdm(orientations, desc='Orientbody_modelation')):
             opt_start = time.time()
 
-             # Damar betas
+            betas_bmi = torch.tensor(measurements_to_betas(height, weight, gender), dtype=torch.float32)
+            #print(betas_bmi)
             new_params = defaultdict(global_orient=orient,
                                      body_pose=body_mean_pose,
-                                     betas = torch.tensor([[-0.62313456, -0.23767281, -0.00250375, -0.13060007,  0.02152915,  0.06315096, -0.02189279,  0.00386397,  0.11787845,  0.08951365]], dtype=torch.float32))
-
+                                     betas = betas_bmi)
             body_model.reset_params(**new_params)
+            #print('body_model: ', body_model)
             if use_vposer:
                 with torch.no_grad():
                     pose_embedding.fill_(0)
-
+            
             body_model.betas.requires_grad = False
             for opt_idx, curr_weights in enumerate(tqdm(opt_weights, desc='Stage')):
 
@@ -474,13 +508,8 @@ def fit_single_frame(img,
             result.update({key: val.detach().cpu().numpy()
                            for key, val in body_model.named_parameters()})
             if use_vposer:
-                # Below vpose.decode is for MPG's (and meshcapade github master) add-on to correctly load 'pkl' file, target shape is (NUM_JOINTS,3)
-                result['body_pose'] = vposer.decode(pose_embedding, output_type='aa').detach().cpu().numpy().reshape((1,63))
-                # Original code
-                # result['body_pose'] = pose_embedding.detach().cpu().numpy()
-            # Set 'global_orient' to zero while keeping its shape for saving pkl
-            # TODO: we need to save global_orient in other form for later use in simulation
-            result['global_orient'] = np.zeros_like(result['global_orient'])
+                result['body_pose'] = pose_embedding.detach().cpu().numpy()
+
             results.append({'loss': final_loss_val,
                             'result': result})
 
@@ -493,17 +522,9 @@ def fit_single_frame(img,
             pickle.dump(results[min_idx]['result'], result_file, protocol=2)
 
     if save_meshes or visualize:
-        # vpose.decode for the pkl above does not share here, so have to call it again
         body_pose = vposer.decode(
             pose_embedding,
             output_type='aa').view(1, -1) if use_vposer else None
-        # If need to get the joints with T posed, otherwise have to load standing pose first
-        # Which means no prediction is expected, rather just get the joints coordinates from default pose
-        # No need to reset pose in pkl above, since meaningless
-        # If need to use results from prediction, comment below
-        #body_pose = torch.zeros_like(body_pose, device=body_pose.device, requires_grad=True)
-        #body_model.reset_params(body_pose=body_pose)
-
 
         model_type = kwargs.get('model_type', 'smpl')
         append_wrists = model_type == 'smpl' and use_vposer
@@ -513,39 +534,15 @@ def fit_single_frame(img,
                                          device=body_pose.device)
                 body_pose = torch.cat([body_pose, wrist_pose], dim=1)
 
-        # above we set the result's global_orient for saving pkl, but here we need to set to body_model for regression joints
-        # set the body pose tensor to None so no local rotations are applied, for saving joint coordinates
-        global_orient= torch.zeros(1, 3, device='cuda:0', requires_grad=True)
-        body_model.reset_params(global_orient=global_orient)
-        # here if want to save the joints in T pose, set body_pose to None
-        # or for standing pose, set body_pose to standing_pose
         model_output = body_model(return_verts=True, body_pose=body_pose)
-        # Get the joints coordinates from the model
-        joints = model_output.joints.detach().cpu().numpy().squeeze()
-        joints *= 1000 # convert to mm
-        # rotate joints around x-axis for +90 degree
-        import trimesh
-        rot = trimesh.transformations.rotation_matrix(
-            np.radians(90), [1, 0, 0])
-        joints = trimesh.transform_points(joints, rot)
-        # Just for checking if the global_orient is reset
-        print("body_model's orient: ", body_model.global_orient)
-        #save joints as json
-        import json
-        with open(joints_path, 'w') as f:
-            json.dump(joints.tolist(), f)
-
         vertices = model_output.vertices.detach().cpu().numpy().squeeze()
 
-        #import trimesh
+        import trimesh
 
         out_mesh = trimesh.Trimesh(vertices, body_model.faces, process=False)
         rot = trimesh.transformations.rotation_matrix(
-            np.radians(180), [1, 0, 0]) # Why rotate 180 degrees around x-axis?
-        # Removed scaling of the mesh output, it breaks SMPLX to SMPL and then OSSO
-        #scale_transform = trimesh.transformations.scale_matrix(1000, [0, 0, 0]) # origin is [0, 0, 0]
-        #out_mesh.apply_transform(scale_transform)
-        #out_mesh.apply_transform(rot) # Why rotate 180 degrees around x-axis?
+            np.radians(180), [1, 0, 0])
+        out_mesh.apply_transform(rot)
         out_mesh.export(mesh_fn)
 
     if visualize:
@@ -595,3 +592,23 @@ def fit_single_frame(img,
 
         img = pil_img.fromarray((output_img * 255).astype(np.uint8))
         img.save(out_img_fn)
+    
+    if save_joints:
+        #Define global orientation
+        global_orient=torch.zeros(1,3, device='cuda:0', requires_grad=True)
+        body_model.reset_params(global_orient=global_orient)
+        model_output = body_model(return_verts=True, body_pose=body_pose)
+        # Joints coordinates
+        joints = model_output.joints.detach().cpu().numpy().squeeze()
+        joints *= 1000 # convert to mm
+        # Rotate joints around x-axis +90 degrees
+        import trimesh
+        rot = trimesh.transformations.rotation_matrix(
+            np.radians(90), [1, 0, 0])
+        joints = trimesh.transform_points(joints, rot)
+        # check if global_orientation is reset
+        #print("body model's orientation: ", body_model.global_orient)
+        # Save joint positions
+        import json
+        with open(joints_path, "w") as f:
+            json.dump(joints.tolist(), f)

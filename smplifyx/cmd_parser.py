@@ -278,13 +278,22 @@ def parse_config(argv=None):
                         help='The tolerance threshold for the function')
     parser.add_argument('--maxiters', type=int, default=100,
                         help='The maximum iterations for the optimization')
+    parser.add_argument('--bmi', default='free', choices=['free', 'fixed', 'personalized'],
+                        help='choose if the betas are free to be fitted, fixed for all cases or personalized')
+    parser.add_argument('--bmi_folder',
+                        help='folder with json files containing player height and weight')
+    parser.add_argument('--height',
+                        help='fixed height for all cases')
+    parser.add_argument('--weight',
+                        help='fixed weight for all cases')    
+
 
     args = parser.parse_args(argv)
 
     args_dict = vars(args)
 
     assert len(args_dict['body_tri_idxs']) % 2 == 0, (
-        'Number of body_tri_idxs arguments must be divisble by 2.'
+        'Number of body_tri_idxs arguments must be divisible by 2.'
         f' Got: {len(args_dict["body_tri_idxs"])}'
     )
     num_tri_idxs = len(args_dict['body_tri_idxs'])
