@@ -424,7 +424,7 @@ def fit_single_frame_bmi(img,
             opt_start = time.time()
 
             betas_bmi = torch.tensor(measurements_to_betas(height, weight, gender), dtype=torch.float32)
-            #print(betas_bmi)
+            print(betas_bmi)
             new_params = defaultdict(global_orient=orient,
                                      body_pose=body_mean_pose,
                                      betas = betas_bmi)
@@ -434,7 +434,7 @@ def fit_single_frame_bmi(img,
                 with torch.no_grad():
                     pose_embedding.fill_(0)
 
-            body_model.betas.requires_grad = False
+            #body_model.betas.requires_grad = False
             for opt_idx, curr_weights in enumerate(tqdm(opt_weights, desc='Stage')):
 
                 body_params = list(body_model.parameters())

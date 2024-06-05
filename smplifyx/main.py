@@ -76,6 +76,8 @@ def main(**args):
     elif bmi == "fixed":
         input_height = args.pop('height', 170.0)
         input_weight = args.pop('weight', 60.0)
+        print('Height: {}, weight: {}'.format(input_height, input_weight))
+        
 
     float_dtype = args['float_dtype']
     if float_dtype == 'float64':
@@ -272,6 +274,7 @@ def main(**args):
             out_img_fn = osp.join(curr_img_folder, 'output.png')
 
             if bmi == "free":
+                print("Fitting smplx with "+bmi+" height and weight")
                 fit_single_frame(img, keypoints[[person_id]],
                                 body_model=body_model,
                                 camera=camera,
@@ -292,7 +295,8 @@ def main(**args):
                                 angle_prior=angle_prior,
                                 **args)
 
-            elif bmi == "personalized" or bmi == "fixed":    
+            elif bmi == "personalized" or bmi == "fixed":
+                print("Fitting smplx with "+bmi+" height and weight")    
                 fit_single_frame_bmi(img, keypoints[[person_id]],
                                 height = input_height,
                                 weight = input_weight,
