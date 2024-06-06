@@ -395,7 +395,6 @@ def fit_single_frame(img,
             # Remove the constraint "Damar betas"
             new_params = defaultdict(global_orient=orient,
                                      body_pose=body_mean_pose)
-#                                     betas = torch.tensor([[-0.5428955554962158, 0.10958688706159592, 0.18718387186527252, -0.16433975100517273, -0.01722436398267746, 0.039273880422115326, -0.10529498010873795, 0.024629995226860046, 0.165267676115036, 0.11545940488576889]], dtype=torch.float32))
 
             body_model.reset_params(**new_params)
             if use_vposer:
@@ -542,8 +541,9 @@ def fit_single_frame(img,
         out_mesh = trimesh.Trimesh(vertices, body_model.faces, process=False)
         rot = trimesh.transformations.rotation_matrix(
             np.radians(180), [1, 0, 0]) # Why rotate 180 degrees around x-axis?
-        scale_transform = trimesh.transformations.scale_matrix(1000, [0, 0, 0]) # origin is [0, 0, 0]
-        out_mesh.apply_transform(scale_transform)
+        # The scaling breaks SMPLX to SMPL conversion and then OSSO
+        #scale_transform = trimesh.transformations.scale_matrix(1000, [0, 0, 0]) # origin is [0, 0, 0]
+        #out_mesh.apply_transform(scale_transform)
         #out_mesh.apply_transform(rot) # Why rotate 180 degrees around x-axis?
         out_mesh.export(mesh_fn)
 
