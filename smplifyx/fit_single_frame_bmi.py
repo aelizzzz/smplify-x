@@ -433,8 +433,8 @@ def fit_single_frame_bmi(img,
             if use_vposer:
                 with torch.no_grad():
                     pose_embedding.fill_(0)
-
-            #body_model.betas.requires_grad = False
+            
+            body_model.betas.requires_grad = False
             for opt_idx, curr_weights in enumerate(tqdm(opt_weights, desc='Stage')):
 
                 body_params = list(body_model.parameters())

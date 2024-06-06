@@ -278,13 +278,11 @@ def parse_config(argv=None):
                         help='The tolerance threshold for the function')
     parser.add_argument('--maxiters', type=int, default=100,
                         help='The maximum iterations for the optimization')
-    parser.add_argument('--bmi', type=str, default='free', choices=['free', 'fixed', 'personalized'],
+    parser.add_argument('--bmi', default='free', choices=['free', 'fixed', 'personalized'],
                         help='choose if the betas are free to be fitted, fixed for all cases or personalized')
-    parser.add_argument('--bmi_folder', type=str,
-                        help='folder with json files containing player height and weight')
-    parser.add_argument('--height', type=float,
+    parser.add_argument('--fixedHeight', type=float,
                         help='fixed height for all cases')
-    parser.add_argument('--weight', type=float,
+    parser.add_argument('--fixedWeight', type=float,
                         help='fixed weight for all cases')    
 
 

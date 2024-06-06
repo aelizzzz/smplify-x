@@ -72,12 +72,12 @@ def main(**args):
     # Check if betas are free to be fitted, fixed for all cases, or personalized
     bmi = args.pop('bmi', 'free')
     if bmi == 'personalized':
-        bmi_folder = args.pop('bmi_folder')
+        bmi_folder = osp.join(output_folder, 'bmi')
+        #print("BMI Folder: ", bmi_folder)
     elif bmi == "fixed":
-        input_height = args.pop('height', 170.0)
-        input_weight = args.pop('weight', 60.0)
-        print('Height: {}, weight: {}'.format(input_height, input_weight))
-        
+        input_height = args.pop('fixedHeight', 170.0)
+        input_weight = args.pop('fixedWeight', 60.0)
+        print('Height: {}, weight: {}'.format(input_height, input_weight))    
 
     float_dtype = args['float_dtype']
     if float_dtype == 'float64':
