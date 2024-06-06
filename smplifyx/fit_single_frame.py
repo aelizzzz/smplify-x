@@ -392,7 +392,7 @@ def fit_single_frame(img,
         for or_idx, orient in enumerate(tqdm(orientations, desc='Orientation')):
             opt_start = time.time()
 
-             # Damar betas
+             # 2018-2019 average height and weight
             new_params = defaultdict(global_orient=orient,
                                      body_pose=body_mean_pose,
                                      betas = torch.tensor([[-0.62313456, -0.23767281, -0.00250375, -0.13060007,  0.02152915,  0.06315096, -0.02189279,  0.00386397,  0.11787845,  0.08951365]], dtype=torch.float32))
@@ -542,8 +542,9 @@ def fit_single_frame(img,
         out_mesh = trimesh.Trimesh(vertices, body_model.faces, process=False)
         rot = trimesh.transformations.rotation_matrix(
             np.radians(180), [1, 0, 0]) # Why rotate 180 degrees around x-axis?
-        scale_transform = trimesh.transformations.scale_matrix(1000, [0, 0, 0]) # origin is [0, 0, 0]
-        out_mesh.apply_transform(scale_transform)
+        # scaling breaks smplx to smpl conversion and osso
+        #scale_transform = trimesh.transformations.scale_matrix(1000, [0, 0, 0]) # origin is [0, 0, 0]
+        #out_mesh.apply_transform(scale_transform)
         #out_mesh.apply_transform(rot) # Why rotate 180 degrees around x-axis?
         out_mesh.export(mesh_fn)
 
